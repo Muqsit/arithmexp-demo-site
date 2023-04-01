@@ -1,0 +1,20 @@
+tr.prev_history{ cursor: pointer; }
+
+.ui.segment.console{ overflow-x: auto; }
+
+.ui.segment.console span.aqua{ color: aqua; }
+.ui.segment.console span.dimgray{ color: dimgray; }
+.ui.segment.console span.gray{ color: gray; }
+.ui.segment.console span.lightblue{ color: lightblue; }
+.ui.segment.console span.lightgray{ color: lightgray; }
+.ui.segment.console span.orange{ color: orange; }
+.ui.segment.console span.red{ color: red; }
+.ui.segment.console span.white{ color: white; }
+
+.variable-input-field{
+    padding: inherit;
+    font: inherit;
+    color: lightblue;
+    background: transparent;
+    border: none;
+}

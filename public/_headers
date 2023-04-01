@@ -1,0 +1,21 @@
+/index.html
+  ! Access-Control-Allow-Origin
+  ! X-Robots-Tag
+  Strict-Transport-Security: max-age=31536000;includeSubDomains
+  X-Frame-Options: SAMEORIGIN
+  Referrer-Policy: same-origin
+  X-Content-Type-Options: nosniff
+  Permissions-Policy: geolocation=(), microphone=()
+  Content-Security-Policy: default-src 'self';script-src 'self';style-src 'self' fonts.googleapis.com fonts.gstatic.com;font-src 'self' data: fonts.googleapis.com fonts.gstatic.com;connect-src 'self';
+
+/favicon.ico
+  Cache-Control: max-age=300
+
+/*.css
+  Cache-Control: max-age=1814400
+
+/*.js
+  Cache-Control: max-age=1814400
+
+/*.woff2
+  Cache-Control: max-age=1814400
