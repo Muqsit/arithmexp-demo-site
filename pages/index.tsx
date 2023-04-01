@@ -6,7 +6,7 @@ export const config = {
 };
 
 export async function getServerSideProps(ctx: NextPageContext){
-	if(ctx.res !== null && ctx.res?.setHeader != null) ctx.res.setHeader(
+	if(ctx.res !== null && ctx.res?.setHeader !== undefined) ctx.res.setHeader(
 		"Cache-Control",
 		"public, maxage=3600"
 	)
