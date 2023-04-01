@@ -7,8 +7,7 @@ export const config = {
 
 export async function getServerSideProps(ctx: NextPageContext){
 	if(ctx.res !== null && ctx.res?.setHeader !== undefined) ctx.res.setHeader(
-		"Cache-Control",
-		"public, maxage=3600"
+		"Cache-Control", "public, max-age=3600"
 	)
 	const response = await fetch(new Request("https://api.github.com/repos/muqsit/arithmexp", {
 		method: "GET",
