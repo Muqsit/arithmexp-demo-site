@@ -53,33 +53,34 @@ function send_error(Throwable $t) : void{
 }
 
 function postfix_to_infix(Parser $parser, Expression $expression) : string{
-        if($expression instanceof ConstantExpression){
-                return (string) $expression->evaluate();
-        }
+	if($expression instanceof ConstantExpression){
+		return (string) $expression->evaluate();
+	}
 
 	$stack = [];
 	foreach($expression->getPostfixExpressionTokens() as $token){
 		$token_fcall_like = Util::asFunctionCallExpressionToken($parser, $token) ?? $token;
-		if($token_fcall_like instanceof FunctionCallExpressionToken){
-			$arguments = array_splice($stack, -$token_fcall_like->argument_count);
-			if(!($token instanceof FunctionCallExpressionToken)){
-				foreach($arguments as $index => $arg){
-					if(!($arg instanceof _Expr)){
-						continue;
-					}
-					if($arg->token instanceof FunctionCallExpressionToken){
-						continue;
-					}
-					if($arg->token->equals($token) && ($token_fcall_like->flags & FunctionFlags::COMMUTATIVE) > 0){
-						continue;
-					}
-					$arguments[$index] = "<open>{$arg}</open>";
-				}
-			}
-			$stack[] = new _Expr($arguments, $token);
-		}else{
+		if(!($token_fcall_like instanceof FunctionCallExpressionToken)){
 			$stack[] = $token;
+			continue;
 		}
+
+		$arguments = array_splice($stack, -$token_fcall_like->argument_count);
+		if(!($token instanceof FunctionCallExpressionToken)){
+			foreach($arguments as $index => $arg){
+				if(!($arg instanceof _Expr)){
+					continue;
+				}
+				if($arg->token instanceof FunctionCallExpressionToken){
+					continue;
+				}
+				if($arg->token->equals($token) && ($token_fcall_like->flags & FunctionFlags::COMMUTATIVE) > 0){
+					continue;
+				}
+				$arguments[$index] = "<open>{$arg}</open>";
+			}
+		}
+		$stack[] = new _Expr($arguments, $token);
 	}
 
 	return (string) $stack[0];
