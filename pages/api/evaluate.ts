@@ -24,7 +24,7 @@ export default function handler(req: NextApiRequest){
 		return new Response("Improper structure for 'variables' was supplied", {status: 400});
 	}
 	for(const key in vars){
-		if(typeof vars[key] !== "number"){
+		if(!["boolean", "number"].includes(typeof vars[key])){
 			return new Response("Improper value types for 'variables' was supplied", {status: 400});
 		}
 	}
