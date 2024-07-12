@@ -149,7 +149,8 @@ echo json_encode([
 		"result" => [
 			"type" => match(gettype($result)){
 				"integer" => "int",
-				"double" => "float"
+				"double" => "float",
+				"boolean" => "boolean"
 			},
 			"value" => (string) $result // because $result can be INF/NAN which are not supported in JSON
 		],
