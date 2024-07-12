@@ -38,7 +38,7 @@ export default class App extends Component<AppProps, AppState>{
 		}
 	}
 
-	private setExpression(expression: string, vars: {[key: string]: number}|null = null) : void{
+	private setExpression(expression: string, vars: {[key: string]: number|boolean}|null = null) : void{
 		window.location.hash = encodeURIComponent(expression);
 
 		this.setState({response: null});
@@ -191,10 +191,19 @@ export default class App extends Component<AppProps, AppState>{
 							e.preventDefault();
 
 							const data: FormData = new FormData(e.target);
-							const vars: {[key: string]: number} = {};
+							const vars: {[key: string]: number|boolean} = {};
 							for(const [key, default_value] of Object.entries(this.state.variable_values)){
-								const val: number = Number(data.get(key)?.valueOf() ?? 0);
-								vars[key] = isNaN(val) ? Number(default_value) : val;
+								const val_raw = data.get(key)?.valueOf() ?? 0;
+								let val: number|boolean;
+								if(val_raw === "false"){
+									val = false;
+								}else if(val_raw === "true"){
+									val = true;
+								}else{
+									val = Number(data.get(key)?.valueOf() ?? 0);
+									val = isNaN(val) ? Number(default_value) : val;
+								}
+								vars[key] = val;
 							}
 							this.setExpression(this.state.expression, vars);
 						}}>
