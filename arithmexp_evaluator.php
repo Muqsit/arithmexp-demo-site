@@ -6,6 +6,7 @@ require "vendor/autoload.php";
 
 use muqsit\arithmexp\expression\ConstantExpression;
 use muqsit\arithmexp\expression\Expression;
+use muqsit\arithmexp\expression\token\BooleanLiteralExpressionToken;
 use muqsit\arithmexp\expression\token\ExpressionToken;
 use muqsit\arithmexp\expression\token\FunctionCallExpressionToken;
 use muqsit\arithmexp\expression\token\NumericLiteralExpressionToken;
@@ -55,9 +56,17 @@ function send_error(Throwable $t) : void{
 	]);
 }
 
+function result_to_string(mixed $result) : string{
+	return match($result){
+		true => "true", // because (string) true is displayed as "1"
+		false => "false", // because (string) false is displayed as ""
+		default => (string) $result // because $result can be INF/NAN which are not supported in JSON
+	};
+}
+
 function postfix_to_infix(Parser $parser, Expression $expression) : string{
 	if($expression instanceof ConstantExpression){
-		return (string) $expression->evaluate();
+		return result_to_string($expression->evaluate());
 	}
 
 	$stack = [];
@@ -137,12 +146,6 @@ try{
 	return;
 }
 
-$result_string = match($result){
-	true => "true", // because (string) true is displayed as "1"
-	false => "false", // because (string) false is displayed as ""
-	default => (string) $result // because $result can be INF/NAN which are not supported in JSON
-};
-
 echo json_encode([
 	"success" => true,
 	"version" => get_version(),
@@ -161,17 +164,18 @@ echo json_encode([
 				"double" => "float",
 				"boolean" => "boolean"
 			},
-			"value" => $result_string
+			"value" => result_to_string($result)
 		],
 		"variables" => (object) $vars,
 		"postfix" => $default instanceof ConstantExpression ? [
 			"type" => "constant",
-			"value" => $result_string
+			"value" => result_to_string($result)
 		] : [
 			"type" => "raw",
 			"value" => array_map(static function(ExpressionToken $token) : array{
 				return [
 					"type" => match($token::class){
+						BooleanLiteralExpressionToken::class => "Boolean Literal",
 						FunctionCallExpressionToken::class => "Function Call",
 						NumericLiteralExpressionToken::class => "Numeric Literal",
 						OpcodeExpressionToken::class => "Opcode",
