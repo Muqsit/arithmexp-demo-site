@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-require "../vendor/autoload.php";
+require "vendor/autoload.php";
 
 use muqsit\arithmexp\expression\ConstantExpression;
 use muqsit\arithmexp\expression\Expression;
@@ -19,7 +19,6 @@ use muqsit\arithmexp\token\OpcodeToken;
 use muqsit\arithmexp\token\UnaryOperatorToken;
 use muqsit\arithmexp\Util;
 
-header("Access-Control-Allow-Origin: https://arithmexp.pages.dev");
 header("Content-Type: application/json");
 
 final class _Expr implements Stringable{
@@ -42,12 +41,16 @@ final class _Expr implements Stringable{
 }
 
 function send_error(Throwable $t) : void{
+	$trace = $t->getTraceAsString();
+	$trace = str_replace(implode(DIRECTORY_SEPARATOR, [dirname(__FILE__), "vendor", "muqsit", "arithmexp", "src", ""]), "./", $trace);
+	$trace = str_replace(dirname(__FILE__) . DIRECTORY_SEPARATOR, "./", $trace);
+	$trace_list = explode(PHP_EOL, $trace);
 	echo json_encode([
 		"success" => false,
 		"result" => [
 			"type" => (new ReflectionClass($t))->getShortName(),
 			"message" => explode(PHP_EOL, $t->getMessage()),
-			"trace" => explode(PHP_EOL, $t->getTraceAsString())
+			"trace" => $trace_list
 		]
 	]);
 }
@@ -60,42 +63,41 @@ function postfix_to_infix(Parser $parser, Expression $expression) : string{
 	$stack = [];
 	foreach($expression->getPostfixExpressionTokens() as $token){
 		$token_fcall_like = Util::asFunctionCallExpressionToken($parser, $token) ?? $token;
-		if(!($token_fcall_like instanceof FunctionCallExpressionToken)){
-			$stack[] = $token;
-			continue;
-		}
-
-		$arguments = array_splice($stack, -$token_fcall_like->argument_count);
-		if(!($token instanceof FunctionCallExpressionToken)){
-			foreach($arguments as $index => $arg){
-				if(!($arg instanceof _Expr)){
-					continue;
+		if($token_fcall_like instanceof FunctionCallExpressionToken){
+			$arguments = array_splice($stack, -$token_fcall_like->argument_count);
+			if(!($token instanceof FunctionCallExpressionToken)){
+				foreach($arguments as $index => $arg){
+					if(!($arg instanceof _Expr)){
+						continue;
+					}
+					if($arg->token instanceof FunctionCallExpressionToken){
+						continue;
+					}
+					if($arg->token->equals($token) && ($token_fcall_like->flags & FunctionFlags::COMMUTATIVE) > 0){
+						continue;
+					}
+					$arguments[$index] = "<open>{$arg}</open>";
 				}
-				if($arg->token instanceof FunctionCallExpressionToken){
-					continue;
-				}
-				if($arg->token->equals($token) && ($token_fcall_like->flags & FunctionFlags::COMMUTATIVE) > 0){
-					continue;
-				}
-				$arguments[$index] = "<open>{$arg}</open>";
 			}
+			$stack[] = new _Expr($arguments, $token);
+		}else{
+			$stack[] = $token;
 		}
-		$stack[] = new _Expr($arguments, $token);
 	}
 
 	return (string) $stack[0];
 }
 
 function get_version() : string{
-	$yac = new Yac();
-	// $yac->delete("MUQSIT_ARITHMEXP_VERSION");
-	$MUQSIT_ARITHMEXP_VERSION = $yac->get("MUQSIT_ARITHMEXP_VERSION");
+	apcu_delete("MUQSIT_ARITHMEXP_VERSION");
+	$MUQSIT_ARITHMEXP_VERSION = apcu_fetch("MUQSIT_ARITHMEXP_VERSION");
+	$MUQSIT_ARITHMEXP_VERSION = false;
 	if($MUQSIT_ARITHMEXP_VERSION === false){
-		$data = json_decode(file_get_contents("../composer.lock"), true);
+		$data = json_decode(file_get_contents("composer.lock"), true);
 		foreach($data["packages"] as ["name" => $name, "version" => $version]){
 			if($name === "muqsit/arithmexp"){
 				$MUQSIT_ARITHMEXP_VERSION = $version;
-				$yac->set("MUQSIT_ARITHMEXP_VERSION", $MUQSIT_ARITHMEXP_VERSION, 3600);
+				apcu_store("MUQSIT_ARITHMEXP_VERSION", $MUQSIT_ARITHMEXP_VERSION, 3600);
 				break;
 			}
 		}
@@ -105,7 +107,7 @@ function get_version() : string{
 
 $expression = $_GET["expression"];
 $parser_type = $_GET["parser"] ?? "default";
-$variables = json_decode($_GET["variables"], true);
+$variables = isset($_GET["variables"]) ? json_decode($_GET["variables"], true) : [];
 
 $parser = match($parser_type){
 	"unoptimized" => Parser::createUnoptimized(),
@@ -135,6 +137,12 @@ try{
 	return;
 }
 
+$result_string = match($result){
+	true => "true", // because (string) true is displayed as "1"
+	false => "false", // because (string) false is displayed as ""
+	default => (string) $result // because $result can be INF/NAN which are not supported in JSON
+};
+
 echo json_encode([
 	"success" => true,
 	"version" => get_version(),
@@ -153,12 +161,12 @@ echo json_encode([
 				"double" => "float",
 				"boolean" => "boolean"
 			},
-			"value" => (string) $result // because $result can be INF/NAN which are not supported in JSON
+			"value" => $result_string
 		],
 		"variables" => (object) $vars,
 		"postfix" => $default instanceof ConstantExpression ? [
 			"type" => "constant",
-			"value" => (string) $result
+			"value" => $result_string
 		] : [
 			"type" => "raw",
 			"value" => array_map(static function(ExpressionToken $token) : array{
