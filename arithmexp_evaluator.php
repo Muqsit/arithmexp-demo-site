@@ -33,7 +33,9 @@ final class _Expr implements Stringable{
 		return match($this->token::class){
 			FunctionCallExpressionToken::class => "{$this->token}(" . implode(", ", $this->arguments) . ")",
 			OpcodeExpressionToken::class => match($this->token->code){
-				OpcodeToken::OP_UNARY_PVE, OpcodeToken::OP_UNARY_NVE => "{$this->token}{$this->arguments[0]}",
+				OpcodeToken::OP_UNARY_NOT,
+				OpcodeToken::OP_UNARY_NVE,
+				OpcodeToken::OP_UNARY_PVE => "{$this->token}{$this->arguments[0]}",
 				default => "{$this->arguments[0]} {$this->token} {$this->arguments[1]}"
 			},
 			default => (string) $this->token
@@ -98,9 +100,9 @@ function postfix_to_infix(Parser $parser, Expression $expression) : string{
 }
 
 function get_version() : string{
-	apcu_delete("MUQSIT_ARITHMEXP_VERSION");
+	//apcu_delete("MUQSIT_ARITHMEXP_VERSION");
 	$MUQSIT_ARITHMEXP_VERSION = apcu_fetch("MUQSIT_ARITHMEXP_VERSION");
-	$MUQSIT_ARITHMEXP_VERSION = false;
+	//$MUQSIT_ARITHMEXP_VERSION = false;
 	if($MUQSIT_ARITHMEXP_VERSION === false){
 		$data = json_decode(file_get_contents("composer.lock"), true);
 		foreach($data["packages"] as ["name" => $name, "version" => $version]){
@@ -114,6 +116,7 @@ function get_version() : string{
 	return $MUQSIT_ARITHMEXP_VERSION;
 }
 
+try{
 $expression = $_GET["expression"];
 $parser_type = $_GET["parser"] ?? "default";
 $variables = isset($_GET["variables"]) ? json_decode($_GET["variables"], true) : [];
@@ -187,3 +190,7 @@ echo json_encode([
 		]
 	]
 ], JSON_THROW_ON_ERROR);
+}catch(Throwable $t){
+	echo $t->getMessage(),PHP_EOL;
+	echo $t->getTraceAsString(),PHP_EOL;
+}
